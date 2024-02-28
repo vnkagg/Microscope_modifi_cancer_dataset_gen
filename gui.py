@@ -1,23 +1,58 @@
+# import readline
+# import struct
+# import io
+# import time
 from cgitb import text
 import tkinter as tk
-from tkinter import colorchooser, messagebox
+from tkinter import ttk, colorchooser, messagebox
 import serial
+import serial.tools.list_ports
+from PIL import Image
 
-ser = serial.Serial('/dev/tty.usbmodem11401', 115200, timeout=1)
+def list_serial_ports():
+    return [port.device for port in serial.tools.list_ports.comports()]
+
+def refresh_ports():
+    ports = list_serial_ports()
+    serial_combo['values'] = ports
+    if ports:
+        serial_combo.current(0)
+    else:
+        messagebox.showwarning("Warning", "No serial ports found.")
+    
+# def on_serial_selection(event):
+#     # Assuming 'serial_var' is your StringVar associated with the Combobox
+#     selected_port = serial_var.get()
+#     print(f"Selected port: {selected_port}")
+#     # Here, you can also open the serial connection or update a global variable
+
+def get_serial_connection():
+    selected_port = serial_var.get()
+    try:
+        return serial.Serial(selected_port, 115200, timeout=1)
+    except serial.SerialException as e:
+        messagebox.showerror("Serial Connection Error", str(e))
+        return None
 
 def handle_const_col():
-    colour_code = colour_value.get()
-    ser.write(b'W')
-    ser.write((colour_code + '\n').encode())
+    ser = get_serial_connection()
+    print(ser)
+    if ser:
+        colour_code = colour_value.get()
+        ser.write(b'W')
+        ser.write((colour_code + '\n').encode())
+        ser.close()
 
 def blink_RGB():
-    interval_value = blink_entry.get()
-    try:
-        interval = int(interval_value)
-        ser.write(b'B')
-        ser.write(str(interval).encode())
-    except ValueError:
-        messagebox.showerror("Error", "Blink interval must be an integer")
+    ser = get_serial_connection()
+    if ser:
+        interval_value = blink_entry.get()
+        try:
+            interval = int(interval_value)
+            ser.write(b'B')
+            ser.write(str(interval).encode())
+        except ValueError:
+            messagebox.showerror("Error", "Blink interval must be an integer")
 
 
 def static_colour():
@@ -37,17 +72,65 @@ def handle_colour_input(*args):
     print(colour_code)
 
 def handle_brightness(value):
-    # brightness_value = brightness_scale.get()
-    # ser.write(('L' + str(value) + '\n').encode())
-    ser.write(b'L')
-    ser.write((str(value) + '\n').encode())
-    print("Brightness:", value)
+    ser = get_serial_connection()
+    if ser:
+        # brightness_value = brightness_scale.get()
+        # ser.write(('L' + str(value) + '\n').encode())
+        ser.write(b'L')
+        ser.write((str(value) + '\n').encode())
+        print("Brightness:", value)
 
 def capture_image():
-    pass
+    ser = get_serial_connection()
+    if ser:
+        ser.write(b'C')
+        # s = ser.readline().decode('utf-8')
+        # print(s)
+        # if s.startswith("Saved"):
+        #     messagebox.showinfo("Success", "Image captured and saved as captured_image.jpg")
+        # elif s.startswith("before"):
+        #     messagebox.showinfo("before loop")
+        # elif s.startswith("nothing"):
+        #     messagebox.showinfo("uart wrote")
+        # elif s.startswith("C"):
+        #     messagebox.showinfo("C")
+        # elif s.startswith("before loop"):
+        #     messagebox.showinfo("before loop")
+
+        
+
+            
+        # try:
+        
+            # size_str = serial_camera.readline()  # Read the size as a string
+            # img_size = int(size_str)  # Convert the size to an integer
+            # img_data = serial_camera.read(img_size)  # Now read the image data
+            
+            # # Convert the bytes data to an image
+            # img = Image.open(io.BytesIO(img_data))
+            # img.save("captured_image.jpg")  # Save the image
+            
+        
+        # except Exception as e:
+        #     messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
 app = tk.Tk()
 app.title("Microscope Controls")
+
+serial_var = tk.StringVar()
+
+serial_frame = tk.Frame(app)
+serial_frame.pack(pady=10)
+
+serial_label = tk.Label(serial_frame, text="Select Serial Port:")
+serial_label.pack(side=tk.LEFT)
+
+serial_combo = ttk.Combobox(serial_frame, textvariable=serial_var, state="readonly", width=50)
+serial_combo.pack(side=tk.LEFT)
+# serial_combo.bind('<<ComboboxSelected>>', on_serial_selection)
+
+refresh_button = tk.Button(serial_frame, text="Refresh Ports", command=refresh_ports)
+refresh_button.pack(side=tk.LEFT)
 
 colour_value = tk.StringVar()
 colour_value.trace("w", handle_colour_input)

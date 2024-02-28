@@ -4,7 +4,7 @@
 
 #define DATAPIN    5
 #define CLOCKPIN   6
-#define BRIGHTNESS_PIN A0  // Analog pin for brightness control
+#define BRIGHTNESS_PIN A0  
 
 Adafruit_DotStarMatrix matrix = Adafruit_DotStarMatrix(
                                   12, 6, DATAPIN, CLOCKPIN,
@@ -13,25 +13,28 @@ Adafruit_DotStarMatrix matrix = Adafruit_DotStarMatrix(
                                   DOTSTAR_BGR);
 
 const uint16_t adaColors[] = {
-  matrix.Color(255, 0, 0),   // Red
-  matrix.Color(0, 255, 0),   // Green
-  matrix.Color(0, 0, 255)    // Blue
+  matrix.Color(255, 0, 0), 
+  matrix.Color(0, 255, 0),  
+  matrix.Color(0, 0, 255)    
 };
 
 char adafruit[] = "ADAFRUIT!";
 int x = matrix.width();
 int brightness = 128;
-bool constantColorMode = false;
+bool constantColorMode = true;
 
 void setup() {
   Serial.begin(115200);
+  Serial3.begin(115200);
   matrix.begin();
   matrix.setFont(&TomThumb);
   matrix.setTextWrap(false);
 }
+
 int interval = 0;
 String colorCode = "";
-String intervalStr;  // Declare intervalStr outside of the switch
+String intervalStr; 
+
 void loop() {
   // Check for serial input
   
@@ -50,6 +53,11 @@ void loop() {
       case 'L':
         brightness = Serial.readStringUntil('\n').toInt();
         setBrightness(brightness);
+        break;
+      case 'C':
+        if(Serial3.available() > 0){
+          Serial3.write('C');
+        }
         break;
     }
   }
@@ -80,7 +88,7 @@ void blinkRGB(int interval) {
 
   if (currentMillis - previousMillis >= interval * 1000) {
     previousMillis = currentMillis;
-    uint32_t color = adaColors[i];  // Get the current color
+    uint32_t color = adaColors[i];  
     matrix.fillScreen(color);
     matrix.show();
 
